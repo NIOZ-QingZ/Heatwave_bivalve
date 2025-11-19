@@ -37,15 +37,17 @@ Sys.setlocale("LC_TIME", "C")
 ```{r}
 #sed T observation
 # save(Mok_data, file = "../data/DataQing/Mok_data.rda")
-load("C:\\Users\\qzhan\\OneDrive - NIOZ\\Attachments\\01_LTER-LIFE\\04_Bivalve_larvea\\Modelling/DataQing/Mok_data.rda")
+# your working directory
+wd <- "C:\\Users\\qzhan\\OneDrive - NIOZ\\Attachments\\01_LTER-LIFE\\04_Bivalve_larvea\\Modelling\\Heatwave_bivalve"
+load(paste0(wd, "/DataQing/Mok_data.rda"))
 
 #weather forcings
 # save(ForcingsDeKooyAirport, file = "../data/DataQing/ForcingsDeKooyAirport.rda")
-load("C:\\Users\\qzhan\\OneDrive - NIOZ\\Attachments\\01_LTER-LIFE\\04_Bivalve_larvea\\Modelling/DataQing/ForcingsDeKooyAirport.rda")
+load(paste0(wd, "/DataQing/ForcingsDeKooyAirport.rda"))
 
 #water forcings from RWS
 # save(WaterForcingsRWSWaddenSea, file = "../data/DataQing/WaterForcingsRWSWaddenSea.rda")
-load("C:\\Users\\qzhan\\OneDrive - NIOZ\\Attachments\\01_LTER-LIFE\\04_Bivalve_larvea\\Modelling/DataQing/WaterForcingsRWSWaddenSea.rda")
+load(paste0(wd, "/DataQing/WaterForcingsRWSWaddenSea.rda"))
 ```
 
 # 3.Model-data fit
@@ -888,6 +890,16 @@ fHeight_shifted_list <- list(
   "+3h" = shift_forcing_hours(fHeight_diurnal, 3),
   "+6h" = shift_forcing_hours(fHeight_diurnal, 6)
 )
+
+### --- 1. Helper: circular shift of forcing by hours ---
+change_T <- function(df, dT, time_step = 3600) {
+
+  changed_values <- df[,3]+dT
+  
+  # Reuse same time column
+  cbind(Second = df[, 1], changed = changed_values)
+}
+
 fTwater_changed_list <- list(
   "0C"  = fTwater_A_diurnal[,c(1,3)]%>%as.matrix(),
   "+2C" = change_T(fTwater_A_diurnal, 2),

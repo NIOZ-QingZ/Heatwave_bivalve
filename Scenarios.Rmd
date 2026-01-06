@@ -97,7 +97,8 @@ process_water_level <- function(data, station_name, depth_offset) {
 fHeight_A_Den.wad <- process_water_level(WaterForcingsRWSWaddenSea$`Den Helder, veersteiger`$WaterLevel, "A", -9)
 
 # # For B station
-# fHeight_B_Den.wad <- process_water_level(WaterForcingsRWSWaddenSea$`Den Helder, veersteiger`$WaterLevel, "B", -33)
+fHeight_B_Den.wad <- process_water_level(WaterForcingsRWSWaddenSea$`Den Helder, veersteiger`$WaterLevel, "B", -33)
+
 # # For D station
 # fHeight_D_Den.wad <- process_water_level(WaterForcingsRWSWaddenSea$`Den Helder, veersteiger`$WaterLevel, "D", -74)
 
@@ -106,7 +107,7 @@ fHeight_A_Den.wad <- process_water_level(WaterForcingsRWSWaddenSea$`Den Helder, 
 
 
 head(fHeight_A_Den.wad)
-# head(fHeight_B_Den.wad)
+head(fHeight_B_Den.wad)
 # head(fHeight_D_Den.wad)
 
 ```
@@ -201,24 +202,24 @@ create_observation_data <- function(data, station_name, depth) {
 }
 
 
-# Create Obsdat_Vvk from SedTempDataWaddenSea
+# Create Obsdat_Mokbai from SedTempDataWaddenSea
 Obsdat_A_3cm <- create_observation_data(Mok_data, "A", 3)
 Obsdat_A_15cm <- create_observation_data(Mok_data, "A", 15)
 
-# Create Obsdat_Balgzand from SedTempDataWaddenSea
-# Obsdat_B_3cm <- create_observation_data(Mok_data, "B", 3)
-# Obsdat_B_15cm <- create_observation_data(Mok_data, "B", 15)
-# 
+# Create Obsdat_Mokbai from SedTempDataWaddenSea
+Obsdat_B_3cm <- create_observation_data(Mok_data, "B", 3)
+Obsdat_B_15cm <- create_observation_data(Mok_data, "B", 15)
+
 # Obsdat_D_3cm <- create_observation_data(Mok_data, "D", 3)
 # Obsdat_D_15cm <- create_observation_data(Mok_data, "D", 15)
 
 # View the first few rows of Obsdat_Vvk and Obsdat_Balgzand
 head(Obsdat_A_3cm)
-# head(Obsdat_B_3cm)
+head(Obsdat_B_3cm)
 # head(Obsdat_D_3cm)
 
 head(Obsdat_A_15cm)
-# head(Obsdat_B_15cm)
+head(Obsdat_B_15cm)
 # head(Obsdat_D_15cm)
 ```
 
@@ -303,6 +304,7 @@ kdSed     = 1000      # [/m] light attenuation coefficient (bulk) sediment(no di
 #### Output hourly
 
 ```{r}
+
 find_time_comparison_function <- function(forcing_list) {
   # Initialize variables to store the latest start time and earliest end time
   latest_start_time <- -Inf
@@ -378,11 +380,14 @@ to_forcing_matrix <- function(df) {
 }
 
 # List all forcing variable names you want to process
+# For station A
 forcing_names <- c(
   "fPair_WaS.wad",
   "fTair_WaS.wad",
   "fHeight_A_Den.wad",
   "fTwater_A.wad",
+  "fHeight_B_Den.wad",
+  "fTwater_B.wad",
   "fHumidity_WaS.wad",
   "fRad_WaS.wad",
   "fWind_WaS.wad",
@@ -453,6 +458,27 @@ Tout.wad_A_A <- TempSED_run1D(z_max=length.z, dz_1=dz.1,
                f_Solarradiation=fRad_WaS.wad, 
                f_Windspeed=fWind_WaS.wad, 
                f_Cloudiness = fCloud_WaS.wad,sedpos=c(0, 0.03, 0.15))
+
+Tout.wad_B_B <- TempSED_run1D(z_max=length.z, dz_1=dz.1,
+                           T_ini=20,      Grid = setup.grid.1D(N = 100, dx.1 = dz.1, L = length.z), times=times, porosity=porfun,
+               dependency_on_T = dependencyT,
+               parms = list(cp_solid=cpSolid,
+                            tc_solid =tcSolid,
+                            em_air = emAir, 
+                            dalton = dalton,
+                            stanton = stanton,
+                            albedo_sediment =albedoSed,
+                            kd_water = kdWater,
+                            albedo_water = albedoWater),
+               f_Pressure=fPair_WaS.wad,
+               f_Airtemperature=fTair_WaS.wad, 
+               f_Waterheight=fHeight_B_Den.wad,
+               f_Watertemperature=fTwater_B.wad, 
+               f_Qrel=fHumidity_WaS.wad,
+               f_Solarradiation=fRad_WaS.wad, 
+               f_Windspeed=fWind_WaS.wad, 
+               f_Cloudiness = fCloud_WaS.wad,sedpos=c(0, 0.03, 0.15))
+
 ```
 
 #### A function to show 10cm band of model data fitting
@@ -1108,6 +1134,8 @@ No differences when changing air temperature?? -> Reply: because the averaged wa
 
 # 5. Visualization
 ## 5.1  a function to plot daily average temperature profiles
+### 4.1.2. Run the model for each shifted forcing
+```{r}
 Plot_DailyAverageT <- function(Data=Tout.wad_A_A, title1="", title2=""){
 #par(oma=c(2,0,0,0), mar=c(4,4,4,2), cex=1.5)
 Temp <- subset(Data, which="Temperature")
@@ -1125,7 +1153,9 @@ DT.day <- unique(DT.d)
 #DT.day is date from 2021-10-31 to 2022-10-31
 Grid <- attributes(Data)$grid
 
+par(mfrow=c(1,2))
 par(mar = c(2, 1, 3, 3))
+#par(mar = c(3, 4, 3, 5))
 image2D(
   x = DT.day,
   y = Grid$x.mid,
@@ -1134,17 +1164,20 @@ image2D(
   las = 1,
   xaxt = "n",
   yaxt = "n",
+  xlab = "Date",
+  ylab = "Depth (cm)",
   main = title1,
   clab = "°C",
-  contour = list(levels = c(0, 5, 10, 12.5, 15, 20, 25, 30), labcex = 1.2),
-  zlim = c(0, 30),
+  contour = list(levels = c(15, 20, 25, 30), labcex = 1.2),
+  zlim = c(15, 30),
   colkey = list(dist = 0.08)  # default is 0, increase to move right
 )
 
 
-axis(1, at = c(DT.day[1], DT.day[length(DT.day)/3], DT.day[length(DT.day)*2/3], DT.day[length(DT.day)]), labels = c("Nov","Mar","Jul","Nov"), las = 1)
+axis(1, at = c(DT.day[1], DT.day[length(DT.day)/3], DT.day[length(DT.day)*2/3], DT.day[length(DT.day)]), 
+labels = c(DT.day[1], DT.day[length(DT.day)/3], DT.day[length(DT.day)*2/3], DT.day[length(DT.day)]), las = 1)
+axis(2, at=seq(10,0, by=-2), labels = TRUE)
 
-axis(2, at=seq(10,0, by=-2), labels = FALSE)
 
 #axis.POSIXct(1,at = seq(from = DT.day[1],to = DT.day[length(DT.day)],by = "4 months"), format = "%b", las=1)  
 
@@ -1164,4 +1197,7 @@ colkey(col = jet.col(367),
        cex.clab = 0.7,
        at = c(0, 100, 200, 300))
 }
-Plot_DailyAverageT(out)
+Plot_DailyAverageT(Data=Tout.wad_A_A, title1="Daily average sediment temperature profile at Station A", title2="Sediment temperature profiles at Station A")
+Plot_DailyAverageT(Data=Tout.wad_B_B, title1="Daily average sediment temperature profile at Station B", title2="Sediment temperature profiles at Station B")
+
+```
